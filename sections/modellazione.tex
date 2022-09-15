@@ -7,50 +7,93 @@ In questo capitolo verranno inizialmente descritti gli attori che concorrono all
 \label{attori}
 
 Lo schema di seguito rappresenta lo stato attuale dello standard FIDO in accordo all'implementazione descritta successivamente.
+\begin{figure}[htb]
+	\centering
+	\includegraphics[width=.4\columnwidth]{figures/example.pdf}
+	\caption{PLACEHOLDER.}
+	\label{fig:esempio}
+\end{figure}
 % INSERIRE SCHEMA ATTORI STATO ATTUALE
 
 \subsection{Service Provider}
 \label{service_provider}
 
-Il Service Provider è un fornitore di un generico servizio a cui l'utente è interessato ad accedere. Può essere un qualunque servizio di streaming, banking, shopping etc. il quale fa uso di un intermediario per l'autenticazione dei propri utenti. Questo può avvenire per varie ragioni sia economiche che legate alla sicurezza. Il Service Provider fa uso del \textbf{security level} per indicare il livello di \emph{survivability} desiderato: esso può crescere all'aumentare della confidenzialità del servizio erogato.
+Il Service Provider è un fornitore di un generico servizio a cui l'utente è interessato ad accedere. Può essere un qualunque servizio di streaming, banking, shopping etc. il quale fa uso di un intermediario per l'autenticazione dei propri utenti. Questo può avvenire per varie ragioni sia economiche che legate alla sicurezza. 
+
+Il Service Provider fa uso del \textbf{security level} per indicare il livello di \emph{survivability} desiderato: esso può crescere all'aumentare della confidenzialità del servizio erogato.
 
 \subsection{Identity Provider}
 \label{identity_provider}
 
-L'Identity Provider è un ente terzo che si occupa di fornire a un Service Provider il servizio di autenticazione. Da qui in avanti ci si riferirà allo stesso col nome di \emph{Relying Party}. 
+L'Identity Provider è un ente terzo che si occupa di fornire a un Service Provider il servizio di autenticazione. Fa parte del cosiddetto \emph{Relying Party}, cioè quella parte che fornisce un accesso sicuro ad un servizio. 
 
 Nella variante \emph{survivable}, invece che fornire un Identity Server unico con il quale il FIDO Client comunica, ne fornisce un numero \textbf{n} desiderato dal Service Provider, a seconda della sicurezza richiesta dal tal servizio. In questo modo durante la fase di creazione l'operazione dovrà essere replicata dal client su tutti gli \emph{n} Identity Server. La parte di autenticazione invece verrà svolta solo su un sottoinsieme $\mathbf{k\leq n}$ di questi. Compito dell'Identity Provider è anche quello di fornire il token di autenticazione al client da presentare al Service Provider per fare in modo che l'utente possa accedere al servizio scelto.
 
-I vari Identity Server comunicano con il FIDO Client, tramite Browser o User Agent, per creare le credenziali degli utenti mantenendo in memoria le challenge generate e gli identificatori degli utenti registrati con le relative chiavi pubbliche ricevute. 
+I vari Identity Server comunicano con il FIDO Client, tramite User Agent, per creare le credenziali degli utenti mantenendo in memoria le challenge generate e gli identificatori degli utenti registrati con le relative chiavi pubbliche ricevute. 
 
-Compito dell'Identity Server è anche quello di rilevare eventuali tentativi di duplicazione dell'autenticatore fisico. Per fare ciò lo standard FIDO prevede un contatore gestito dall'autenticatore, sia esso globale o multiplo, che viene aggiornato ad ogni operazione avvenuta con successo. Il server mantiene in memoria l'ultimo valore ricevuto e, all'interazione successiva, controlla che non vi siano discrepanze. In particolare se il valore ricevuto è minore di quello salvato in memoria dal server allora si può essere in presenza di un tentativo di clonazione. (L'accadere dell'inverso non è detto che costituisca un problema, motivo per il quale può essere utilizzato anche un contatore globale.) Ciò significa che un attaccante maligno ha duplicato l'autenticatore ad uno stato precedente mentre l'utilizzatore ha continuato ad utilizzare il proprio dispositivo incrementando il contatore. 
+Compito dell'Identity Server è anche quello di rilevare eventuali tentativi di duplicazione dell'autenticatore fisico. Per fare ciò lo standard FIDO prevede un contatore gestito dall'autenticatore, sia esso globale o multiplo, che viene aggiornato ad ogni operazione avvenuta con successo. Il contatore prende il nome di \emph{signature counter}. Il server mantiene in memoria l'ultimo valore ricevuto e, all'interazione successiva, controlla che non vi siano discrepanze. In particolare se il valore ricevuto è minore di quello salvato in memoria dal server allora si può essere in presenza di un tentativo di clonazione. (L'accadere dell'inverso non è detto che costituisca un problema, motivo per il quale può essere utilizzato anche un contatore globale.) Ciò significa che un attaccante maligno ha duplicato l'autenticatore ad uno stato precedente mentre l'utilizzatore ha continuato ad autenticarsi incrementando il contatore. 
 
-Nella variante survivable è stato modellato il sistema adottando un contatore specifico per ogni livello di sicurezza. Ad ogni autenticazione, e quindi ad ogni livello di sicurezza desiderato specificato dal Service Provider, verrà incrementato il contatore corrispondente a \emph{k}. Questa modifica non altera il funzionamento del server, che riceve sempre un valore di contatore unico, indi per cui non è stato necessario operare modifiche in questo senso dal lato server.
+Nella variante survivable è stato modellato il sistema adottando un contatore specifico per ogni livello di sicurezza. Ad ogni autenticazione, e quindi ad ogni livello di sicurezza desiderato specificato dal Service Provider, verrà incrementato il contatore corrispondente a \emph{k}. Questa modifica non altera il funzionamento del server, che riceve sempre un valore di contatore unico, indi per cui non è stato necessario operare modifiche in questo senso dal lato del server.
 
 \subsection{Autenticatore}
 \label{autenticatore}
 
 L'autenticatore hardware è un dispositivo che, tramite l'interazione fisica con l'utente, permette l'accesso al servizio web richiesto. Durante la fase di creazione delle credenziali, l'autenticatore si occupa di creare una coppia di chiavi crittografiche, una pubblica e una privata. Utilizzerà la chiave privata per firmare le challenge che gli vengono sottoposte mentre la pubblica verrà inviata al server così che esso possa verificare l'autenticità delle firme.
 
-Per la fase di creazione e le successive di autenticazione viene richiesto all'utente di compiere un'azione: essa può essere la pressione di un pulsante sulla chiavetta stessa, un collegamento NFC con un dispositivo autorizzato oppure ancora l'identificazione tramite impronta digitale. Così facendo l'operazione in corso viene autenticata.
+Per la fase di creazione e le successive di autenticazione viene richiesto all'utente di compiere un'azione: essa può essere la pressione di un pulsante sulla chiavetta stessa, un collegamento NFC oppure ancora l'identificazione tramite impronta digitale. Così facendo l'operazione in corso viene autenticata.
 
 Nella variante \emph{survivable} viene inviato il digest ottenuta dall'hashing delle \emph{n} challenge dei server che partecipano all'operazione. Esso appare all'autenticatore come una challenge unica, motivo per il quale non è stato necessario modificare il codice dell'autenticatore per richiedere l'interazione ad ogni singola challenge. 
 
 Durante la fase di registrazione viene inizializzato un contatore tramite cui vengono tenute traccia delle operazioni conseguite correttamente. Ad ogni operazione il contatore, al corrispondente livello di sicurezza, viene incrementato mono-atomicamente. Come detto in precedenza, si è reso necessario implementare un contatore specifico per ogni livello di sicurezza richiesto, sia in fase di autenticazione che di creazione. Prima di fare ciò, è stato però necessario introdurre un contatore per ogni credenziale creata, poiché allo stato attuale il codice della Solokey, per questioni di spazio, prevede un contatore globale unico. 
 
-
 \subsection{Client}
 \label{client}
 
-Tipicamente un dispositivo client che sfrutta un User Agent conforme ad implmentare le specifiche FIDO per il dialogo con il Relying Party e con l'autenticatore, in collaborazione con il dispositivo hardware sottostante su è installato l'User Agent. Il client è quindi interposto tra il FIDO Server e l'autenticatore fisico, agendo da intermediario. Il suo compito è duplice:
+Un dispositivo client che sfrutta un User Agent conforme ad implmentare le specifiche FIDO per il dialogo con il Relying Party e con l'autenticatore, in collaborazione con il dispositivo hardware sottostante su è installato l'User Agent, tipicamente un sistema operativo. Il client è quindi interposto tra il FIDO Server e l'autenticatore fisico, agendo da intermediario. Il suo compito è duplice:
 \begin{itemize}
-	\item Comunicare con il server, agendo da User Agent, al fine di iniziare, e successivamente terminare, le operazioni di autenticazione e di creazione delle credenziali. 
-	\item Comunicare con l'autenticatore allo scopo di creare le chiavi crittografiche e firmare le challenge ricevute dal server.
+	\item Comunicare con il server al fine di iniziare, e successivamente terminare, le operazioni di autenticazione e di creazione delle credenziali 
+	\item Comunicare con l'autenticatore allo scopo di creare le chiavi crittografiche e firmare le challenge ricevute dal server
 \end{itemize}
 La comunicazione è bidirezionale, duplice e segue i costrutti specificati dalle API definite nei relativi standard: CTAP per l'interazione con l'autenticatore e WebAuthn per la comunicazione con il FIDO Server. 
 
-Nel caso particolare dell'estensione survivable il client si occupa di replicare le operazioni su \emph{n} FIDO Server distinti, computando l'hash delle challenge distinte ricevute e fornendolo all'autenticatore.
+Nel caso particolare dell'estensione survivable il client si occupa di replicare le operazioni su \emph{n} FIDO Server distinti, computando l'hash delle challenge ricevute e fornendolo all'autenticatore come un digest unico su cui apportare la firma. 
 
 \section{Flusso operativo}
 \label{flusso_operativo}
 
+Il flusso operativo si compone di due operazioni distinte: una fase di creazione delle credenziali e una fase di autenticazione dell'utente. Tali operazioni vengono svolte, rispettivamente, durante la registrazione al servizio del Service Provider e a tutti i login successivi.
+
+\subsection{Fase di registrazione}
+\label{registrazione}
+
+La fase di registrazione si origina a partire dalla richiesta dell'utente, utilizzando un User Agent, di registrarsi ad un servizio, offerto da un Service Provider, che supporti l'autenticazione passworldess, tramite degli Identity Provider. Il Service Provider fornisce all'utente il livello di sicurezza \emph{n} necessario per completare l'operazione. Il processo messo in atto è il seguente:
+
+\begin{enumerate}
+	\item Ogni Identity Server crea il proprio stato interno e la challenge
+	\item Ogni Identity Server invia al Client una serie di requisiti secondo cui deve essere svolta la cerimonia di registrazione, e la challenge generata
+	\item Il Client salva tutte le challenge ricevute in un vettore e computa l'hash dello stesso
+	\item Il Client effettua una chiamata al metodo opportuno dell'autenticatore, fornendo i requisiti di creazione richiesti dal Relying Party e il digest computato come challenge
+	\item L'autenticatore procede a generare la coppia di chiavi crittografiche seguendo le imposizioni del server e invia al client la challenge firmata accompagnata dalla chiave pubblica e dal signature counter
+	\item Il Client invia ad ogni Identity Server il vettore con le challenge, l'hash dello stesso, la firma. la chiave pubblica e il signature counter ricevuto
+	\item Ogni Identity Server controlla che la challenge da lui generata sia presente all'interno del vettore e controlla, computando lui stesso l'hash del vettore, l'integrità di quanto ricevuto. Infine, verifica tramite la chiave pubblica fornitagli l'autenticità della firma.
+	\item Qualora il processo sia andato a buon fine, gli Identity Server salveranno le informazioni ricevute (contatore, chiave pubblica, identificatore del client) al proprio interno e forniranno al Client l'attestazione con cui poter completare la registrazione presso il Service Provider
+\end{enumerate} 
+
+\subsection{Fase di Autenticazione}
+\label{autenticazione}
+
+La fase di autenticazione ricalca i passaggi di quella di registrazione con la differenza che gli Identity Server sono già in possesso della chiave pubblica con cui verificare l'autenticità della firma apportata alle challenge. 
+
+In questa fase viene comunicato un security level pari a \emph{k} da parte del Service Provider, cioè il numero di Identity Server presso cui è necessario autenticarsi. Questo valore prende in considerazione la tollerabilità alle intrusione che ha il Service Provider. In particolare: \emph{k} può essere $ \emph{(2j+1)} $, dove \emph{j} rappresenta il numero di Identity Server di cui si può tollerare la compromissione, oppure può essere $ \emph{(2j+2)} $ in caso di requisiti particolarmente stringenti. 
+
+\begin{enumerate}
+	\item Ogni Identity Server crea il proprio stato interno e la challenge
+	\item Ogni Identity Server invia al Client una serie di requisiti, secondo cui deve essere svolta la cerimonia di autenticazione, e la challenge generata
+	\item Il Client salva tutte le challenge ricevute in un vettore e computa l'hash dello stesso
+	\item Il Client effettua una chiamata al metodo opportuno dell'autenticatore, fornendo i requisiti di autenticazione richiesti dal Relying Party e il digest computato come challenge
+	\item L'autenticatore invia al Client la challenge firmata e il contatore, specifico del livello di sicurezza stabilito, aggiornato
+	\item Il Client invia ad ogni Identity Server il vettore con le challenge, l'hash dello stesso, la firma ricevuta e il signature counter
+	\item Ogni Identity Server controlla che la challenge da lui generata sia presente all'interno del vettore e controlla, computando lui stesso l'hash del vettore, l'integrità di quanto ricevuto. Infine, verifica tramite la chiave pubblica, memorizzata precedentemente, l'autenticità della firma
+	\item Ogni Identiy Server controlla che il \emph{signature counter} ricevuto sia maggiore di quello memorizzato in precedenza e in tal caso aggiorna quest'ultimo
+	\item Se i passaggi precedenti sono avvenuti con successo rilasciano al Client l'attestazione tramite cui può completare l'autenticazione presso il Service Provider
+\end{enumerate}

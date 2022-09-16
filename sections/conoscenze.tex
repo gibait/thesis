@@ -3,14 +3,23 @@
 
 In questa sezione verranno introdotti i concetti necessari per proseguire con la lettura dei capitoli successivi. 
 
+\section{Survivability}
+\label{surviv}
+
+Lo schema \emph{Single Sign-On} è un protocollo molto diffuso utilizzato per fare il login a servizi Web. L'utente non effettua l'autenticazione direttamente presso il servizio desiderato ma passa prima da un ente terzo. Questo ente è chiamato Identity Provider, fornisce un Identity Server presso cui l'utente deve autenticarsi per farsi rilasciare una attestazione. Tale attestazione verrà poi presentata al servizio desiderato così che possa finalmente essere fruito. 
+
+La centralizzazione dello schema SSO lascia però spazio ad attacchi in cui un malintenzionato prenda il controllo dell'Identity Server e forgi token di autenticazione così da poter poi impersonare qualunque utente. Vengono in aiuto gli schemi cosiddetti \emph{survivable SSO} che possono limitare le problematiche della centralizzazione utilizzando più Identity Server. Un singolo Identity Provider gestirà quindi più Identity Server e l'utente dovrà autenticarsi presso un sottoinsieme di questi, i quali rilasceranno poi una attestazione firmata collettivamente. 
+
+La componente survivable risiede nel fatto che viene tollerato un certo numero di Identity Server violati e, di conseguenza, viene richiesta una attestazione in funzione di questo numero. Con una soglia di tolleranza di server maligni sufficiente si riesce a garantire l'integrità del meccanismo di autenticazione e un overhead, dovuto alla reiterazione dei passaggi, trascurabile.
+
 \section{Passwordless}
 \label{passwordless}
 
-L'autenticazione passwordless è un metodo di autenticazione che permette ad un utente di effettuare il login ad un servizio senza la necessità di conoscere una password o più genericamente una conoscenza considerata segreta. Tipicamente utilizza una coppia di chiavi crittografiche, una privata e una pubblica: la prima viene generata e immagazzinata sul dispositivo dell'utente mentre la seconda viene inviata al server per verificare l'autenticità dei messaggi inviati dall'utente. La chiave privata, o segreta, non lascia mai il dispositivo su cui è stata creata e per accedervi è necessaria una qualche sorta di autenticazione da parte dell'utente. L'autenticazione può riguardare:
+L'autenticazione passwordless è un metodo di autenticazione che permette ad un utente di effettuare il login ad un servizio senza la necessità di conoscere una password o più genericamente una conoscenza considerata segreta. Tipicamente utilizza una coppia di chiavi crittografiche, una privata e una pubblica: la prima viene generata e immagazzinata sul dispositivo dell'utente mentre la seconda viene inviata al server così che possa verificare l'autenticità dei messaggi ricevuti. La chiave privata, o segreta, non lascia mai il dispositivo su cui è stata creata e per accedervi è necessaria una qualche sorta di autenticazione da parte dell'utente \cite{wiki:passwordless}. L'autenticazione può riguardare:
 
 \begin{itemize}
 	\item Qualcosa che l'utente \textbf{possiede} come un telefono cellulare, un token OTP, un autenticatore hardware
-	\item Qualcosa che l'utente \textbf{è} come l'impronta digitale, la scansione retinica o il riconoscimento vocale \cite{wiki:passwordless}
+	\item Qualcosa che l'utente \textbf{è} come l'impronta digitale, la scansione retinica o il riconoscimento vocale 
 \end{itemize}
 
 La registrazione passwordless e, conseguentemente, l'autenticazione vengono svolte seguendo un meccanismo \emph{challenge-response}: al pervenire di una richiesta di registrazione il server invia una cosidetta \emph{challenge}. L'utente che ha iniziato l'operazione avrà il compito di apporre, tramite propria chiave privata, una firma crittografica sulla challenge e di fornire in risposta al server la challenge firmata accompagnata dalla chiave pubblica. Così facendo il server verificherà l'autenticità della firma tramite la chiave appena ricevuta e in caso di esito positivo, la immagazzinerà. La fase di autenticazione verrà svolta in modo analogo con la differenza che il server è già in possesso della chiave pubblica e non sarà necessario inviarla.
@@ -20,4 +29,8 @@ Come si può vedere non viene scambiato alcun segreto e l'unica interazione rich
 \section{FIDO}
 \label{fido}
 
-FIDO Alliance è un'associazione nata nel 2013 con lo scopo di migliorare i sistemi di autenticazione. Sono gli autori di \emph{FIDO}, un set di specifiche che racchiude gli standard CTAP e WebAuthn. Nel corso degli anni vi sono stati un susseguirsi di iterazioni degli standard, prima conosciuta come Universal Authentication Factor per poi diventare Universal 2nd Factor e poi giungere alla versione corrente FIDO 2.0. I due protocolli CTAP e WebAuthn si occupano, rispettivamente, di definire le specifiche tramite cui vengono programmati gli autenticatori crittografici per fare in modo che possano operare con un client e di definire le specifiche tramite cui standardizzare l'autenticazione a servizi web sfruttando le chiavi crittografiche. 
+FIDO Alliance è un'associazione nata nel 2013 con lo scopo di migliorare i sistemi di autenticazione. Sono gli autori di \emph{FIDO}, un set di specifiche che racchiude gli standard CTAP e WebAuthn. Nel corso degli anni vi sono stati un susseguirsi di iterazioni degli standard, prima conosciuta come Universal Authentication Factor per poi diventare Universal 2nd Factor e giungere infine alla versione corrente FIDO 2.0. 
+
+Il protocollo CTAP definisce le specifiche tramite cui vengono programmati gli autenticatori crittografici per fare in modo che possano operare con un client. Il protocollo WebAuthn si occupa invece di definire le specifiche tramite cui standardizzare l'autenticazione a servizi web sfruttando le chiavi crittografiche. 
+
+In particolare definiscono tutto il necessario per programmare un autenticatore e un server come: strutture dati, metodi, requisiti di funzionamento, encoding dei dati etc.

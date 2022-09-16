@@ -8,12 +8,12 @@ In questa sezione verranno introdotti i concetti necessari per proseguire con la
 
 % AGGIUNGERE ATTORI
 
-Lo schema \emph{Single Sign-On} è un protocollo molto diffuso utilizzato per fare il login a servizi Web. L'utente non effettua l'autenticazione direttamente presso il servizio desiderato ma passa prima da un ente terzo. Questo ente è chiamato Identity Provider, fornisce un Identity Server presso cui l'utente deve autenticarsi per farsi rilasciare una \textbf{attestazione}. Tale attestazione, anche detta \textbf{token} di autenticazione, verrà poi presentata al servizio desiderato così che possa finalmente essere fruito. 
+Lo schema \emph{Single Sign-On} è un protocollo molto diffuso utilizzato per fare il login a servizi Web. L'utente non effettua l'autenticazione direttamente presso il servizio desiderato ma passa prima da un ente terzo. Questo ente è chiamato Identity Provider, fornisce un Identity Server presso cui l'utente deve autenticarsi per farsi rilasciare un \textbf{token} di autenticazione. Tale token verrà poi presentato al servizio desiderato così che possa finalmente essere fruito. 
 
 \section{Survivability}
 \label{surviv}
 
-La centralizzazione dello schema SSO lascia spazio ad attacchi in cui un malintenzionato prenda il controllo dell'Identity Server e forgi token di autenticazione così da poter poi impersonare qualunque utente egli voglia. Vengono in aiuto gli schemi cosiddetti \emph{survivable SSO} che possono limitare tali problematiche sfruttando più Identity Server. Un singolo Identity Provider gestirà quindi più Identity Server e l'utente dovrà autenticarsi presso un sottoinsieme di questi, i quali rilasceranno poi una attestazione firmata collettivamente. 
+La centralizzazione dello schema SSO lascia spazio ad attacchi in cui un malintenzionato prenda il controllo dell'Identity Server e forgi token di autenticazione così da poter poi impersonare qualunque utente egli voglia. Vengono in aiuto gli schemi cosiddetti \emph{survivable SSO} che possono limitare tali problematiche sfruttando più Identity Server. Un singolo Identity Provider gestirà quindi più Identity Server e l'utente dovrà autenticarsi presso un sottoinsieme di questi, i quali rilasceranno poi una \textbf{attestazione} firmata collettivamente. 
 
 La componente survivable risiede nel fatto che viene tollerato un certo numero di Identity Server violati e, di conseguenza, viene richiesta una attestazione in funzione di questo numero. Con una soglia di tolleranza di server maligni sufficiente si riesce a garantire l'integrità del meccanismo di autenticazione e un overhead, dovuto alla reiterazione dei passaggi, trascurabile.
 

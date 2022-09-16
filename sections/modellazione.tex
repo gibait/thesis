@@ -26,7 +26,6 @@ I vari Identity Server comunicano con il FIDO Client, tramite User Agent, per cr
 
 %Nella variante survivable è stato modellato il sistema adottando un contatore specifico per ogni livello di sicurezza. Ad ogni autenticazione, e quindi ad ogni livello di sicurezza desiderato specificato dal Service Provider, verrà incrementato il contatore corrispondente a \emph{k}. Questa modifica non altera il funzionamento del server, che riceve sempre un valore di contatore unico, indi per cui non è stato necessario operare modifiche in questo senso dal lato del server.
 
-
 L'\textbf{autenticatore} hardware è un dispositivo che, tramite l'interazione con l'utente, permette l'accesso al servizio web richiesto. Durante la fase di creazione delle credenziali, l'autenticatore si occupa di creare una coppia di chiavi crittografiche, una pubblica e una privata. Utilizzerà la chiave privata per firmare le challenge che gli vengono sottoposte mentre la pubblica verrà inviata al server così che esso possa verificare l'autenticità delle firme.
 Per la fase di creazione e le successive di autenticazione viene richiesto all'utente di compiere un'azione: essa può essere la pressione di un pulsante sulla chiavetta stessa, un collegamento NFC oppure ancora l'identificazione tramite impronta digitale. Così facendo l'operazione in corso viene autenticata.
 
@@ -34,7 +33,7 @@ Per la fase di creazione e le successive di autenticazione viene richiesto all'u
 
 %Durante la fase di registrazione viene inizializzato un contatore tramite cui vengono tenute traccia delle operazioni conseguite correttamente. Ad ogni operazione il contatore, al corrispondente livello di sicurezza, viene incrementato mono-atomicamente. 
 
-Il FIDO \textbf{Client} è un dispositivo che sfrutta un User Agent conforme ad implmentare le specifiche FIDO per il dialogo con il Relying Party e con l'autenticatore, in collaborazione con l'hardware sottostante su cui è installato l'User Agent, tipicamente un sistema operativo. Il client è quindi interposto tra il FIDO Server e l'autenticatore fisico, agendo da intermediario. Il suo compito è duplice:
+Il FIDO \textbf{Client} è un dispositivo che sfrutta un \textbf{User Agent} conforme ad implmentare le specifiche FIDO per il dialogo con il Relying Party e con l'autenticatore, in collaborazione con l'hardware sottostante su cui è installato l'User Agent, tipicamente un sistema operativo. Il client è quindi interposto tra il FIDO Server e l'autenticatore fisico, agendo da intermediario. Il suo compito è duplice:
 \begin{itemize}
 	\item Comunicare con il server al fine di iniziare, e successivamente terminare, le operazioni di autenticazione e di creazione delle credenziali 
 	\item Comunicare con l'autenticatore allo scopo di creare le chiavi crittografiche e firmare le challenge ricevute dal server
@@ -61,7 +60,7 @@ La fase di registrazione si origina a partire dalla richiesta dell'utente, utili
 	\item Il Client salva tutte le challenge ricevute in un vettore e computa l'hash dello stesso
 	\item Il Client effettua una chiamata al metodo opportuno dell'autenticatore, fornendo i requisiti di creazione richiesti dal Relying Party e il digest computato come challenge
 	\item L'autenticatore procede a generare la coppia di chiavi crittografiche seguendo le imposizioni del server e invia al client la challenge firmata accompagnata dalla chiave pubblica e dal signature counter
-	\item Il Client invia ad ogni Identity Server il vettore con le challenge, l'hash dello stesso, la firma. la chiave pubblica e il signature counter ricevuto
+	\item Il Client invia ad ogni Identity Server il vettore con le challenge, l'hash dello stesso, la firma, la chiave pubblica e il signature counter ricevuto
 	\item Ogni Identity Server controlla che la challenge da lui generata sia presente all'interno del vettore e controlla, computando lui stesso l'hash del vettore, l'integrità di quanto ricevuto. Infine, verifica tramite la chiave pubblica fornitagli l'autenticità della firma.
 	\item Qualora il processo sia andato a buon fine, gli Identity Server salveranno le informazioni ricevute (contatore, chiave pubblica, identificatore del client) al proprio interno
 \end{enumerate} 
@@ -71,7 +70,7 @@ La fase di registrazione si origina a partire dalla richiesta dell'utente, utili
 
 La fase di autenticazione ricalca i passaggi di quella di registrazione con la differenza che gli Identity Server sono già in possesso della chiave pubblica con cui verificare l'autenticità della firma apportata alle challenge. 
 
-In questa fase viene comunicato un security level pari a \emph{Q} da parte del Service Provider, cioè il sottoinsieme di Identity Server $\mathbf{Q\leq n}$ presso cui è necessario autenticarsi. Questo valore prende in considerazione la tollerabilità alle intrusione che ha il Service Provider. In particolare: \emph{Q} può essere $ \emph{(2k+1)} $, dove \emph{k} rappresenta il numero di Identity Server di cui si può tollerare la compromissione, oppure può essere $ \emph{(3k+1)} $ in caso di requisiti particolarmente stringenti. 
+In questa fase viene comunicato un security level pari a \emph{|Q|} da parte del Service Provider, cioè la cardinalità del sottoinsieme di Identity Server $\mathbf{Q\leq n}$ presso cui è necessario autenticarsi. Questo valore prende in considerazione la tollerabilità alle intrusione che ha il Service Provider. In particolare: \emph{|Q|} può essere $ \emph{(2k+1)} $, dove \emph{k} rappresenta il numero di Identity Server di cui si può tollerare la compromissione, oppure può essere $ \emph{(3k+1)} $ in caso di requisiti particolarmente stringenti. 
 
 \begin{enumerate}
 	\item Ogni Identity Server crea il proprio stato interno e la challenge

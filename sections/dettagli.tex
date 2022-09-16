@@ -1,0 +1,17 @@
+\chapter{Dettagli}
+\label{dettagli}
+
+In questo capitolo verranno trattati i dettagli implementativi relativi alle modifiche a:
+\begin{itemize}
+	\item Una variante della libreria FIDO2 realizzata da Yubico modificata in una tesi precedente per accogliere il meccanismo survivable \cite{yubico:fido}
+	\item Il codice sorgente dell'autenticatore Solokeys \cite{solokeys:code}
+\end{itemize}
+
+Nonostante la libreria Yubico fosse già stata modificata in precedenza per adottare la struttura survivable, è stato comunque necessario operare cambiamenti. La libreria FIDO2 si occupa di simulare l'interazione tra un Client FIDO2 e un Server FIDO2 per emulare la registrazione e la successiva autenticazione. Grazie alla modifica apportata precedentemente è possibile simulare un numero arbitrario di Server con cui stabilire la comunicazione e svolgere tali operazioni. Viene correttamente gestito tutto il funzionamento descritto nel capitolo precedente meno la parte di invio del security level.
+
+Lato autenticatore invece si è reso necessario implementare diverse funzionalità: dal parsing del security level nel messaggio CBOR inviato dal client all'autenticatore fino ad arrivare a un contatore globale vero e proprio. Infatti, da standard FIDO2 il signature counter utilizzato per il controllo della clonazione dell'autenticatore può essere anche definito come globale e non specifico per credenziale \cite{fido:signature_counter}. Ciò è possibile per questioni legate alla natura degli autenticatori hardware: dispositivi constraint con limitazioni di memoria importanti.
+
+\section{Modifica della libreria FIDO2}
+\label{modifica_fido}
+
+Rispetto alla libreria modificata 

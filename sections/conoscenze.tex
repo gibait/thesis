@@ -3,33 +3,37 @@
 
 In questa sezione verranno introdotti i concetti necessari per proseguire con la lettura dei capitoli successivi. 
 
+\section{Crittografia asimmetrica}
+\label{asimmetrica}
+
+La crittografia asimmetrica è un tipo di crittografia in cui ogni attore possiede una coppia di chiavi: una \textbf{pubblica} e una \textbf{privata}. Le chiavi vengono create in funzione di un primo scambio di dati che avviene tramite crittografia simmetrica. Gli usi della crittografia asimmetrica sono due:
+\begin{itemize}
+	\item Cifrare le comunicazioni: tramite la chiave pubblica del destinatario è possibile cifrare un messaggio che solo il destinatario può decifrare usando la propria chiave privata.
+	\item Firmare digitalmente: tramite la propria chiave privata un attore può apporre su un messaggio, autenticandolo, la firma, la quale può essere verificata tramite la chiave pubblica del firmatario.
+\end{itemize}
+
 \section{Single Sign-On}
 \label{sso}
 
 % AGGIUNGERE ATTORI
 
-Lo schema \emph{Single Sign-On} è un protocollo molto diffuso utilizzato per fare il login a servizi Web. L'utente non effettua l'autenticazione direttamente presso il servizio desiderato ma passa prima da un ente terzo. Questo ente è chiamato Identity Provider, fornisce un Identity Server presso cui l'utente deve autenticarsi per farsi rilasciare un \textbf{token} di autenticazione. Tale token verrà poi presentato al servizio desiderato così che possa finalmente essere fruito. 
+Il \emph{Single Sign-On} è un protocollo molto diffuso utilizzato per autenticarsi a servizi Web. Il protocollo è eseguito da uno User Agent, un Identity Provider e un Service Provider. L'User Agent è un software usato dall'utente che permette l'interazione con un contenuto Web. L'Identity Provider è un attore terzo che si occupa di fornire un sistema di autenticazione sicuro, creando e gestendo le credenziali degli utente, a servizi Web che lo richiedano. L'Identity Provider possiede degli Identity Server presso cui gli utenti devono eseguire le operazioni di autenticazione. Il Service Provider è un fornitore di servizio Web che non implementa sistemi di autenticazione propri ma utilizza quelli messi a disposizione dall'Identity Provider. Qualora l'utente si autentichi con successo presso l'Identity Server gli viene fornito un token di autenticazione firmato dell'Identity Server, che deve presentare al Service Provider per poter fruire di quel servizio.  Una volta presentato il token al Service Provider sarà autenticato a tutti quei servizi messi a disposizione dal Service Provider che fanno uso dello stesso Identity Provider, da qui l'accezione \emph{single} di \emph{sign-on}.
 
 \section{Survivability}
 \label{surviv}
 
-La centralizzazione dello schema SSO lascia spazio ad attacchi in cui un malintenzionato prenda il controllo dell'Identity Server e forgi token di autenticazione così da poter poi impersonare qualunque utente egli voglia. Vengono in aiuto gli schemi cosiddetti \emph{survivable SSO} che possono limitare tali problematiche sfruttando più Identity Server. Un singolo Identity Provider gestirà quindi più Identity Server e l'utente dovrà autenticarsi presso un sottoinsieme di questi, i quali rilasceranno poi una \textbf{attestazione} firmata collettivamente. 
+La centralizzazione dello schema SSO lascia spazio ad attacchi in cui un malintenzionato prenda il controllo dell'Identity Server e utilizzi la chiave privata dello stesso per firmare token di autenticazione forgiati arbitrariamente, così da poter poi impersonare qualunque utente egli voglia. Vengono in aiuto gli schemi cosiddetti \emph{survivable SSO} che possono limitare tali criticità sfruttando più Identity Server. Un singolo Identity Provider gestisce quindi più Identity Server e l'utente deve autenticarsi presso un sottoinsieme di questi, i quali rilasciano poi un \textbf{token} firmato collettivamente. 
 
-La componente survivable risiede nel fatto che viene tollerato un certo numero di Identity Server violati e, di conseguenza, viene richiesta una attestazione in funzione di questo numero. Con una soglia di tolleranza di server maligni sufficiente si riesce a garantire l'integrità del meccanismo di autenticazione e un overhead, dovuto alla reiterazione dei passaggi, trascurabile.
+La componente survivable risiede nel fatto che viene tollerato un certo numero di Identity Server violati e, di conseguenza, viene richiesto un token in funzione di questo numero. Con una soglia di tolleranza di server maligni sufficiente si riesce a garantire l'integrità del meccanismo di autenticazione e un overhead, dovuto alla reiterazione dei passaggi, trascurabile.
 
 \section{Passwordless}
 \label{passwordless}
 
-L'autenticazione passwordless è un metodo di autenticazione che permette ad un utente di effettuare il login ad un servizio senza la necessità di conoscere una password o più genericamente una conoscenza considerata segreta. Tipicamente utilizza una coppia di chiavi crittografiche, una \textbf{privata} e una \textbf{pubblica}: la prima viene generata e immagazzinata sul dispositivo dell'utente mentre la seconda viene inviata al server così che esso possa verificare l'autenticità dei messaggi ricevuti. La chiave privata, o segreta, non lascia mai il dispositivo su cui è stata creata e per accedervi è necessaria una qualche sorta di autenticazione da parte dell'utente \cite{wiki:passwordless}. L'autenticazione può riguardare:
+L'autenticazione passwordless è un metodo di autenticazione che permette ad un utente di effettuare il login ad un servizio senza la necessità di conoscere una password o più genericamente una conoscenza considerata segreta. Tipicamente utilizza una coppia di chiavi crittografiche, una privata e una pubblica: la prima è generata e immagazzinata sul dispositivo dell'utente, mentre la seconda è inviata al server così che esso possa verificare l'autenticità dei messaggi ricevuti. La chiave privata, o segreta, non lascia mai il dispositivo su cui è stata creata e per accedervi è necessaria l'autorizzazione ottenuta tramite \textbf{mediazione} da parte dell'utente. Un'azione è detta mediata da un utente qualora sia necessario il suo esplicito consenso. Il consenso può avvenire, ad esempio, premendo il bottone sul dispositivo fisico.
 
-\begin{itemize}
-	\item Qualcosa che l'utente \textbf{possiede} come un telefono cellulare, un token OTP, un autenticatore hardware
-	\item Qualcosa che l'utente \textbf{è} come l'impronta digitale, la scansione retinica o il riconoscimento vocale 
-\end{itemize}
+La registrazione passwordless e, conseguentemente, l'autenticazione vengono svolte seguendo un meccanismo \emph{challenge-response}: al pervenire di una richiesta di registrazione il server invia una cosidetta \emph{challenge}. L'utente che ha iniziato l'operazione ha il compito di apporre, tramite propria chiave privata, una firma crittografica sulla challenge e di fornire in risposta al server la challenge firmata accompagnata dalla chiave pubblica. Così facendo il server verifica l'autenticità della firma tramite la chiave appena ricevuta e in caso di esito positivo la immagazzina. La fase di autenticazione è svolta in modo analogo con la differenza che il server è già in possesso della chiave pubblica e non è quindi necessario inviarla.
 
-La registrazione passwordless e, conseguentemente, l'autenticazione vengono svolte seguendo un meccanismo \emph{challenge-response}: al pervenire di una richiesta di registrazione il server invia una cosidetta \emph{challenge}. L'utente che ha iniziato l'operazione avrà il compito di apporre, tramite propria chiave privata, una firma crittografica sulla challenge e di fornire in risposta al server la challenge firmata accompagnata dalla chiave pubblica. Così facendo il server verificherà l'autenticità della firma tramite la chiave appena ricevuta e in caso di esito positivo, la immagazzinerà. La fase di autenticazione verrà svolta in modo analogo con la differenza che il server è già in possesso della chiave pubblica e non sarà quindi necessario inviarla.
-
-Come si può vedere non viene scambiato alcun segreto e l'unica interazione richiesta all'utente è quella in fase di firma della challenge. Anche allora l'utilizzatore non dovrà inserire codici o password ma semplicemente autenticarsi al dispositivo contenente la chiave privata tramite uno dei fattori sopra elencati. Sfruttando l'autenticazione passwordless è possibile sopperire alle criticità tipiche dei segreti a bassa entropia come le password, quali phishing, brute forcing etc. 
+Come si può vedere non viene scambiato alcun segreto e l'unica interazione richiesta all'utente è quella in fase di firma della challenge. Anche allora l'utilizzatore non deve inserire codici o password ma semplicemente mediare l'operazione tramite uno dei metodi sopra elencati. Sfruttando l'autenticazione passwordless è possibile sopperire alle criticità tipiche dei segreti a bassa entropia come le password, quali phishing, brute forcing etc. 
 
 \section{FIDO}
 \label{fido}
@@ -43,4 +47,15 @@ In particolare definiscono tutto il necessario per programmare un autenticatore 
 \subsection{Rilevamento tentativi di clonazione}
 \label{fido:clonazione}
 
-Compito dell'Identity Server è anche quello di rilevare eventuali tentativi di duplicazione dell'autenticatore fisico. Per fare ciò lo standard FIDO prevede un \textbf{contatore} gestito dall'autenticatore, sia esso globale o multiplo, che viene aggiornato ad ogni operazione avvenuta con successo. Il contatore prende il nome di \emph{signature counter}. Il server mantiene in memoria l'ultimo valore ricevuto e, all'interazione successiva, controlla che non vi siano discrepanze. In particolare se il valore ricevuto è minore di quello salvato in memoria dal server allora si può essere in presenza di un tentativo di clonazione. (L'accadere dell'inverso non è detto che costituisca un problema, motivo per il quale può essere utilizzato anche un contatore globale.) Ciò significa che un attaccante maligno ha duplicato l'autenticatore ad uno stato precedente mentre l'utilizzatore ha continuato ad autenticarsi incrementando il contatore. 
+Compito dell'Identity Server è anche quello di rilevare eventuali tentativi di duplicazione dell'autenticatore fisico. Per fare ciò lo standard FIDO prevede un \textbf{contatore}, sia esso globale o multiplo, aggiornato dall'autenticatore ad ogni operazione avvenuta con successo. Il contatore prende il nome di \emph{signature counter}. Il server mantiene in memoria l'ultimo valore ricevuto e, all'interazione successiva, controlla che non vi siano discrepanze. Ad esempio, ipotizzando di avere allo stesso tempo:
+\begin{itemize}
+	\item Un autenticatore originale con contatore pari a \emph{m}
+	\item Un autenticatore clone dell'originale con contatore pari a \emph{m}
+\end{itemize}
+Se l'autenticatore originale si autentica presso un servizio, questi aggiorna il proprio contatore a ${m+1}$. Il clone, tentando di autenticarsi allo stesso servizio, fornisce un valore del contatore pari a \emph{m}, dunque minore di quello salvato in memoria dal server al momento dell'ultima interazione con l'autenticatore originale. In questo modo, il server riconosce il clone in quanto tale. 
+
+Ne consegue che il rilevamento del tentativo di clonazioni basato sul contatore risulta:
+\begin{itemize}
+	\item Inefficace finché il clone non procede ad autenticarsi
+	\item Fallace se il clone procede ad autenticarsi prima dell'originale: quest'ultimo viene di fatto invalidato nonostante sia legittimo
+\end{itemize} 

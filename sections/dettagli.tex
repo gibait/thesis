@@ -1,17 +1,95 @@
 \chapter{Dettagli}
 \label{dettagli}
 
-In questo capitolo verranno trattati i dettagli implementativi relativi alle modifiche a:
+In questo capitolo verranno trattati i dettagli implementativi relativi alle modifiche operate a:
 \begin{itemize}
 	\item Una variante della libreria FIDO2 realizzata da Yubico modificata in una tesi precedente per accogliere il meccanismo survivable \cite{yubico:fido}
-	\item Il codice sorgente dell'autenticatore Solokeys \cite{solokeys:code}
+	\item Il codice sorgente dell'autenticatore Solokeys \cite{solokeys:code} per integrare il \emph{security level}
 \end{itemize}
 
 Nonostante la libreria Yubico fosse già stata modificata in precedenza per adottare la struttura survivable, è stato comunque necessario operare cambiamenti. La libreria FIDO2 si occupa di simulare l'interazione tra un Client FIDO2 e un Server FIDO2 per emulare la registrazione e la successiva autenticazione. Grazie alla modifica apportata precedentemente è possibile simulare un numero arbitrario di Server con cui stabilire la comunicazione e svolgere tali operazioni. Viene correttamente gestito tutto il funzionamento descritto nel capitolo precedente meno la parte di invio del security level.
 
-Lato autenticatore invece si è reso necessario implementare diverse funzionalità: dal parsing del security level nel messaggio CBOR inviato dal client all'autenticatore fino ad arrivare a un contatore globale vero e proprio. Infatti, da standard FIDO2 il signature counter utilizzato per il controllo della clonazione dell'autenticatore può essere anche definito come globale e non specifico per credenziale \cite{fido:signature_counter}. Ciò è possibile per questioni legate alla natura degli autenticatori hardware: dispositivi constraint con limitazioni di memoria importanti.
+Lato autenticatore invece si è reso necessario implementare diverse funzionalità: dal parsing del security level nel messaggio inviato dall'User Agent all'autenticatore fino ad arrivare a un contatore globale vero e proprio. Infatti, da standard FIDO2 il signature counter utilizzato per il controllo della clonazione dell'autenticatore può essere anche globale e non specifico per credenziale \cite{fido:signature_counter}. Ciò è dovuto alla natura \emph{constraint}, cioè con limitazioni di memoria importanti, degli autenticatori hardware.
 
 \section{Modifica della libreria FIDO2}
 \label{modifica_fido}
 
-Rispetto alla libreria modificata 
+La libreria FIDO2 presenta il file \verb*|client_multichallenge.py| in cui viene definita la classe \verb*|Fido2ClientMultichallenge|, figlia della classe \verb*|Fido2Client| nel relativo \verb*|client.py|, che permette l'autenticazione WebAuthn simulando un Client FIDO. Presenta due metodi, \verb*|make_credential| per realizzare l'operazione di creazione delle credenziali e \verb*|get_assertion| per compiere l'operazione di autenticazione. 
+
+Rispetto alla condizione di partenza sono stati aggiunti ai metodi sopracitati il passaggio del parametro \verb*|security_level|. Questo valore viene poi passato alla funzione \verb*|send_cbor| chiamata in concatenazione. Quest'ultima funzione si occupa di creare la sequenza di byte codificata in \emph{CBOR}, inviarla all'autenticatore e attenderne la risposta. 
+
+\section{Modifica al codice Solo}
+\label{modifica_solo}
+
+Il codice dell'autenticatore Solokeys, come detto in precedenza, presentava un solo contatore globale per tenere traccia di tutte le operazioni di creazione/autenticazione svoltesi con successo. Il primo passo è stato, quindi, quello di implementare una struttura dati per la memorizzazione di un contatore per credenziale. Tale struttura dati, definita \verb*|signCounter| è una tipo di dato composto da due valori.
+\begin{itemize}
+	\item Una istanza \verb*|id| della \emph{struct} \verb*|CredentialId|
+	\item Un intero senza segno di 32 bit definito come \verb*|signCount|
+\end{itemize}
+
+La struttura dati \verb*|CredentialId| definisce come vengono memorizzate le credenziali all'interno dell'autenticatore seguendo lo standard FIDO \cite{fido:credential_id}. In particolare, invece che avere una sequenza di 16 bytes come da standard, presenta valori come \begin{verbatim}
+	tag, nonce, padding, metadata, rpIdHash
+\end{verbatim} 
+
+La definizione della struttura \verb*|signCounter| è effettuata all'interno del file \verb*|ctap.h| e sempre nello stesso file è inizializzato anche \verb*|signCounterArray|, cioè un array di strutture dati \verb*|signCounter|. Tramite questo array è possibile memorizzare un contatore per credenziale. 
+
+L'array viene popolato all'interno nel momento in cui viene chiamata la funzione \verb*|ctap_make_credential| utilizzata dall'autenticatore per compiere le operazioni di creazione delle credenziali. In particolare:
+\begin{itemize}
+	\item tramite un intero non segnato \verb*|globalCounter| viene tenuta traccia dell'ultima posizione dell'array occupata
+	\item viene istanziata una struttura dati \verb*|signCounter| con \verb*|id| pari a quello calcolato e $\verb*|signCount| = 1 $
+	\item viene aggiunta la struttura dati \verb*|signCounter| all'array \verb*|signCounterArray| alla posizione \verb*|globalCounter|
+\end{itemize}
+
+Nel momento in cui viene chiamata la funzione \verb*|ctap_get_assertion| viene cercata iterativamente la struttura dati il cui \verb*|id| corrisponde a quello dell'operazione corrente e viene incrementato il contatore di tale struct. 
+
+Per verificare che l'\verb*|id| corrisponda a quello generato in fase di \verb*|get_assertion| è stato necessario scrivere una funzione di comparazione: il C, infatti, non supporta nativamente la comparazione di due struct. A tal scopo è stata scritta la funzione \verb*|count_cmp_func| che compara attributo dopo attributo tutti quelli presenti all'interno della struttura per verificarne l'uguaglianza.
+Il contatore, invece, viene aggiornato tramite la funzione \verb*|update_sign_counter| che semplicemente prende il valore \verb*|signCount| passato in chiamata e restituisce $signCount + 1$.
+
+Il passo successivo è stato quello di modificare la struttura dati \verb*|signCounter| per fare in modo che accogliesse un contatore per \emph{security level}. Per fare ciò l'attributo \verb*|signCount| è stato cambiato da intero senza segno di 32 bit ad array di interi senza segno di 32 bit. Analogamente al processo di incremento seguito prima, il contatore corrispondente al security level ricevuto verrà aggiornato nel seguente modo:
+\begin{verbatim}
+	update_sign_counter(signCounter.signCount[n]])
+\end{verbatim}
+Così facendo vengono mantenuti e incrementati \emph{n} signature counter differenti per ogni credenziale. 
+
+
+L'ultimo passaggio è stato quello di ricezione del \emph{security level}. Lo standard CTAP2 \cite{fido:ctap_commands} definisce i codici dei comandi a cui deve essere associato il lancio di alcune funzioni. Ogni comando è strutturato con il proprio codice di comando e i codici per i propri parametri. I codici per per i comandi di interesse sono i seguenti: 
+\begin{verbatim}
+	0x01	authenticatorMakeCredential
+	0x02	authenticatorGetAssertion
+\end{verbatim}
+
+
+L'autenticatore Solo sfrutta il polling per controllare l'arrivo di messaggi da parte del Client. Al giungere di uno di questi viene controllato il codice del comando presente nei primi byte e viene invocata la funzione indicata dal codice e di cui è stato mostrato un esempio sopra. Tale funzione a sua volta effettuerà il parsing, cioè l'analisi del contenuto, per ottenere i parametri della funzione invocata. Oltre ai codici per i parametri già esistenti dei comandi \verb*|authenticatorMakeCredential| e \verb*|authenticatorGetAssertion| è stato necessario aggiungere nel file \verb*|ctap.h|:
+\begin{verbatim}
+	0x0A	MC_securityLevel
+	0x08	GA_securityLevel
+\end{verbatim}
+Per definire i codici con cui codificare i livelli di sicurezza da usare, rispettivamente, in fase di creazione credenziali (\textbf{M}ake\textbf{C}redential) e autenticazione (\textbf{G}et\textbf{A}ssertion). 
+
+Solo utilizza delle funzioni definite nel file \verb*|ctap_parse.c| per fare il parsing del flusso di dati CBOR ricevuto dal Client. In particolare sono presenti due funzioni:
+\begin{itemize}
+	\item \verb*|ctap_parse_make_credential|
+	\item \verb*|ctap_parse_get_assertion|
+\end{itemize}
+
+che si occupano di controllare il flusso di dati per ottenere i parametri necessari alle funzioni \verb*|ctap_make_credential| e \verb*|ctap_parse_credential| per poter compiere le operazioni di creazione/autenticazione. In questo caso viene aggiunto allo \verb*|switch| l'identificazione dei codici definiti sopra per il parametro \emph{security level}. 
+
+Di seguito il funzionamento semplificato all'interno della funzione \verb*|ctap_parse_make_credential|:
+\begin{verbatim}
+    switch(cmd)
+    {
+        ...
+        case MC_securityLevel:
+            cbor_value_get_int(MC->securityLevel)
+        ...
+    }
+\end{verbatim}
+Al riconoscere del codice relativo al parametro security level definito sopra, viene salvato il valore del security level all'interno della struttura dati \verb*|MC|, ovvero il risultato costruito con i parametri ottenuti dal flusso di dati ricevuto dal Client.
+Analogo quanto avviene all'interno della funzione \verb*|ctap_parse_get_assertion|. 
+
+In questo modo all'interno delle funzioni \verb*|ctap_make_credential| e \verb*|ctap_parse_credential|, grazie al parsing effettuato, è disponibile il valore \verb*|securityLevel| per poter incrementare il contatore adeguato. 
+
+%per immagazzinare meno informazioni possibili e poter effettuare il \emph{wrapping} delle chiavi: nello specifico Solo utilizza una chiave \emph{master secret} \verb*|M| e un numero casuale \verb*|R| per generare tramite una funzione \verb*|HMAC(M,R)| la chiave privata, e conseguentemente quella pubblica, da utilizzare per l'operazione di creazione. Invia poi il valore \verb*|R| e la chiave pubblica al server. 
+%In fase di autenticazione gli viene restituito il valore \verb*|R| e l'autenticatore ri-genera tramite funzione HMAC la chiave privata e pubblica. 
+%Il wrapping delle chiavi consente un funzionamento quasi \emph{stateless} all'autenticatore, cioè senza la necessità di memorizzare informazioni per ogni operazione. 
+

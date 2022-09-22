@@ -18,7 +18,7 @@ La libreria FIDO2 presenta il file \verb*|client_multichallenge.py| in cui viene
 
 Rispetto alla condizione di partenza sono stati aggiunti ai metodi sopracitati il passaggio del parametro \verb*|security_level|. Questo valore viene poi passato alla funzione \verb*|send_cbor| chiamata in concatenazione. Quest'ultima funzione si occupa di creare la sequenza di byte codificata in \emph{CBOR}, inviarla all'autenticatore e attenderne la risposta. 
 
-\section{Modifica al codice Solo}
+\section{Modifica del codice Solo}
 \label{modifica_solo}
 
 Il codice dell'autenticatore Solokeys, come detto in precedenza, presentava un solo contatore globale per tenere traccia di tutte le operazioni di creazione/autenticazione svoltesi con successo. Il primo passo è stato, quindi, quello di implementare una struttura dati per la memorizzazione di un contatore per credenziale. Tale struttura dati, definita \verb*|signCounter| è una tipo di dato composto da due valori.
@@ -33,7 +33,7 @@ La struttura dati \verb*|CredentialId| definisce come vengono memorizzate le cre
 
 La definizione della struttura \verb*|signCounter| è effettuata all'interno del file \verb*|ctap.h| e sempre nello stesso file è inizializzato anche \verb*|signCounterArray|, cioè un array di strutture dati \verb*|signCounter|. Tramite questo array è possibile memorizzare un contatore per credenziale. 
 
-L'array viene popolato all'interno nel momento in cui viene chiamata la funzione \verb*|ctap_make_credential| utilizzata dall'autenticatore per compiere le operazioni di creazione delle credenziali. In particolare:
+L'array viene popolato nel momento in cui viene chiamata la funzione \verb*|ctap_make_credential| utilizzata dall'autenticatore per compiere le operazioni di creazione delle credenziali. In particolare:
 \begin{itemize}
 	\item tramite un intero non segnato \verb*|globalCounter| viene tenuta traccia dell'ultima posizione dell'array occupata
 	\item viene istanziata una struttura dati \verb*|signCounter| con \verb*|id| pari a quello calcolato e $\verb*|signCount| = 1 $
@@ -41,6 +41,14 @@ L'array viene popolato all'interno nel momento in cui viene chiamata la funzione
 \end{itemize}
 
 Nel momento in cui viene chiamata la funzione \verb*|ctap_get_assertion| viene cercata iterativamente la struttura dati il cui \verb*|id| corrisponde a quello dell'operazione corrente e viene incrementato il contatore di tale struct. 
+
+\begin{verbatim}
+    for (uint l = 0; l <= globalCounter; l++) {
+        if (count_cmp_func(&cred->credential.id, &signCounter1[l])) {
+            count = update_sign_counter(&signCounter1[l], GA.securityLevel);
+        }
+    }
+\end{verbatim}
 
 Per verificare che l'\verb*|id| corrisponda a quello generato in fase di \verb*|get_assertion| è stato necessario scrivere una funzione di comparazione: il C, infatti, non supporta nativamente la comparazione di due struct. A tal scopo è stata scritta la funzione \verb*|count_cmp_func| che compara attributo dopo attributo tutti quelli presenti all'interno della struttura per verificarne l'uguaglianza.
 Il contatore, invece, viene aggiornato tramite la funzione \verb*|update_sign_counter| che semplicemente prende il valore \verb*|signCount| passato in chiamata e restituisce $signCount + 1$.
@@ -84,12 +92,35 @@ Di seguito il funzionamento semplificato all'interno della funzione \verb*|ctap_
         ...
     }
 \end{verbatim}
-Al riconoscere del codice relativo al parametro security level definito sopra, viene salvato il valore del security level all'interno della struttura dati \verb*|MC|, ovvero il risultato costruito con i parametri ottenuti dal flusso di dati ricevuto dal Client.
-Analogo quanto avviene all'interno della funzione \verb*|ctap_parse_get_assertion|. 
+La struttura dati \verb*|MC| rappresenta il risultato del parsing di tutti gli attributi nel flusso di dati ricevuto e viene restituita dalla funzione \verb*|ctap_parse_make_credential| al chiamante, in questo caso la funzione \verb*|ctap_make_credential|. In questo modo all'interno della funzione \verb*|ctap_make_credential|, dove si realizza l'inizializzazione della struttura dati \verb*|signCounter| e, conseguentemente del contatore \verb*|signCount|, è possibile utilizzare il valore del \emph{security level} ricevuto dal Client e incrementare di conseguenza il contatore corrispondente.
 
-In questo modo all'interno delle funzioni \verb*|ctap_make_credential| e \verb*|ctap_parse_credential|, grazie al parsing effettuato, è disponibile il valore \verb*|securityLevel| per poter incrementare il contatore adeguato. 
+Analogo quanto avviene all'interno della funzione \verb*|ctap_parse_get_assertion| con la differenza che la struttura restituita alla funzione \verb*|ctap_parse_assertion|, cioè dove si realizza l'incremento del contatore, sarà chiamata \verb*|GA|.
 
-%per immagazzinare meno informazioni possibili e poter effettuare il \emph{wrapping} delle chiavi: nello specifico Solo utilizza una chiave \emph{master secret} \verb*|M| e un numero casuale \verb*|R| per generare tramite una funzione \verb*|HMAC(M,R)| la chiave privata, e conseguentemente quella pubblica, da utilizzare per l'operazione di creazione. Invia poi il valore \verb*|R| e la chiave pubblica al server. 
-%In fase di autenticazione gli viene restituito il valore \verb*|R| e l'autenticatore ri-genera tramite funzione HMAC la chiave privata e pubblica. 
-%Il wrapping delle chiavi consente un funzionamento quasi \emph{stateless} all'autenticatore, cioè senza la necessità di memorizzare informazioni per ogni operazione. 
 
+\section{Testing}
+\label{testing}
+
+I test delle modifiche al codice Solo e alla libreria FIDO sono stati effettuati in locale. Per la parte di WebAuthn è stato utilizzato il file \verb*|client_multichallenge.py| che simula, utilizzando le classi \verb*|Fido2ClientMultichallenge| e \verb*|Fido2ServerMultichallenge| la fase di creazione delle credenziali e poi l'autenticazione di queste con un numero arbitrario di FIDO Server operanti localmente. 
+L'integrazione fatta al codice già presente è stata di definire i livello di sicurezza da utilizzare durante le due operazioni. 
+
+Per quanto riguarda l'autenticatore, invece, è stato utilizzato un emulatore scritto da Solo che permette la simulazione di un autenticatore virtuale comunicante tramite protocollo UDP. Questo ha evitato di dover compiere le operazioni tipiche dei dispositivi embedded di \emph{flash} del software sull'autenticatore fisico e ha snellito sensibilmente il processo di test. 
+
+Per fare in modo che l'emulatore UDP di Solo comunicasse con il Client FIDO2 della relativa libreria è stato necessario apportare delle modifiche alla classe \verb*|CtapHidConnection| che si occupa di definire, per i principali sistemi operativi, i metodi grazie ai quali è possibile interagire con gli \emph{Human Interface Device}. Per HID si intendono genericamente quei dispositivi elettronici che permettono l'interazione, sia essa in input o in output, con un essere umano. Gli autenticatori hardware fanno quindi parte degli HID. 
+In particolare è stato aggiunto il file \verb*|udp_backend.py| in cui viene definita la classe \verb*|UdpCtapHidConnection| facendo l'override di \verb*|CtapHidConnection|. Nello specifico:
+\begin{itemize}
+	\item Viene definito un attributo della classe, chiamato \verb*|sock|, che rappresenta il \emph{socket} tramite cui avviene la comunicazione UDP
+	\begin{verbatim}
+		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	\end{verbatim}
+	L'elemento fondante del protocollo UDP sono proprio i SOCKET, combinazioni di indirizzi IP e porte necessari per la comunicazione.
+	\item Vengono ridefiniti i metodi di scrittura e lettura dei pacchetti utilizzando i metodi della libreria \verb*|socket| per l'invio e la ricezione tramite UDP
+	\begin{verbatim}
+        def write_packet(self, data):
+            self.sock.sendto(data, self.remote)
+		
+        def read_packet(self):
+            data, host = self.sock.recvfrom(self.descriptor.report_size_out)
+        return data
+	\end{verbatim}
+\end{itemize}
+Per realizzare questa modifica è stato integrato il codice già scritto da Solo per il proprio strumento di interazione a riga di comando con l'autenticatore \cite{solo1-cli:udp_backend}.

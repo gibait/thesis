@@ -22,7 +22,7 @@ Il Service Provider definisce il \textbf{security level} per indicare il livello
 
 L'\textbf{Identity Provider} è un ente terzo che si occupa di fornire a un Service Provider il servizio di autenticazione. A tale scopo si avvale di \emph{n} Identity Server.
 Compito dell'Identity Provider è anche quello di fornire il token di autenticazione al client da presentare al Service Provider per fare in modo che l'utente possa accedere al servizio scelto.
-I vari Identity Server memorizzano le credenziali degli utenti ed una chiave segreta con cui autenticare attestazioni di identità.
+I vari Identity Server memorizzano le credenziali degli utenti ed una chiave segreta con cui autenticare token di autenticazione.
 
 L'\textbf{autenticatore} hardware è un dispositivo che, tramite l'interazione con l'utente, permette l'accesso al servizio web richiesto. L'autenticatore si occupa di memorizzare le credenziali. Ogni credenziale contiene una chiave privata, metadati e un \textbf{array associativo} di contatori ${arr_C}$. L'${arr_C}$ associa ad un determinato \emph{security level} il valore di un \emph{contatore} intero per tenere traccia delle operazioni effettuate con successo. L'autenticatore ricorre alla chiave privata per firmare le challenge che gli sono sottoposte e invia la chiave pubblica al server così che esso possa verificare l'autenticità delle firme. 
 Per la fase di creazione e le successive di autenticazione viene richiesto all'utente di compiere un'azione: essa può essere la pressione di un pulsante sulla chiavetta stessa, un collegamento NFC oppure ancora l'identificazione tramite impronta digitale. Così facendo l'operazione in corso viene autorizzata.
@@ -64,7 +64,7 @@ La fase di registrazione si origina a partire dalla richiesta dell'utente, utili
 
 La fase di autenticazione ricalca i passaggi di quella di registrazione con la differenza che gli Identity Server sono già in possesso della chiave pubblica con cui verificare l'autenticità della firma apportata alle challenge. 
 
-In questa fase viene comunicato un security level pari a ${|Q|}$ da parte del Service Provider, cioè la cardinalità del sottoinsieme di Identity Server ${Q\leq n}$ presso cui è necessario autenticarsi. Questo valore prende in considerazione la tollerabilità alle intrusione che ha il Service Provider. In particolare: ${|Q| \in [(2k+1), (3k+1)] }$, dove \emph{k} rappresenta il numero di Identity Server di cui si può tollerare la compromissione. 
+In questa fase viene comunicato un security level pari a ${|Q|}$ da parte del Service Provider, cioè la cardinalità del sottoinsieme di Identity Server con cardinalità $Q:$ ${|Q|\leq n}$ presso cui è necessario autenticarsi. Questo valore prende in considerazione la tollerabilità alle intrusione che ha il Service Provider. In particolare: ${|Q| \in [(2k+1), (3k+1)] }$, dove \emph{k} rappresenta il numero di Identity Server di cui si può tollerare la compromissione. 
 
 \begin{enumerate}
 	\item Ogni Identity Server crea il proprio stato interno e la challenge
@@ -75,5 +75,5 @@ In questa fase viene comunicato un security level pari a ${|Q|}$ da parte del Se
 	\item Il Client invia ad ogni Identity Server il vettore con le challenge, l'hash dello stesso, la firma ricevuta e il signature counter
 	\item Ogni Identity Server controlla che la challenge da lui generata sia presente all'interno del vettore e controlla, computando lui stesso l'hash del vettore, l'integrità di quanto ricevuto. Infine, verifica tramite la chiave pubblica, memorizzata precedentemente, l'autenticità della firma
 	\item Ogni Identiy Server controlla che il \emph{signature counter} ricevuto sia maggiore di quello memorizzato in precedenza e in tal caso aggiorna quest'ultimo con il valore appena ricevuto
-	\item Se i passaggi precedenti sono avvenuti con successo rilasciano al Client l'attestazione tramite cui può completare l'autenticazione presso il Service Provider
+	\item Se i passaggi precedenti sono avvenuti con successo rilasciano al Client il token di autenticazione tramite cui può completare l'autenticazione presso il Service Provider
 \end{enumerate}

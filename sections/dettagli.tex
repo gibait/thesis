@@ -35,7 +35,7 @@ La definizione della struttura \verb*|signCounter| è effettuata all'interno del
 
 L'array viene popolato nel momento in cui viene chiamata la funzione \verb*|ctap_make_credential| utilizzata dall'autenticatore per compiere le operazioni di creazione delle credenziali. In particolare:
 \begin{itemize}
-	\item tramite un intero non segnato \verb*|globalCounter| viene tenuta traccia dell'ultima posizione dell'array occupata
+	\item tramite un intero senza segno \verb*|globalCounter| viene tenuta traccia dell'ultima posizione dell'array occupata
 	\item viene istanziata una struttura dati \verb*|signCounter| con \verb*|id| pari a quello calcolato e $\verb*|signCount| = 1 $
 	\item viene aggiunta la struttura dati \verb*|signCounter| all'array \verb*|signCounterArray| alla posizione \verb*|globalCounter|
 \end{itemize}
@@ -100,19 +100,19 @@ Analogo quanto avviene all'interno della funzione \verb*|ctap_parse_get_assertio
 \section{Testing}
 \label{testing}
 
-I test delle modifiche al codice Solo e alla libreria FIDO sono stati effettuati in locale. Per la parte di WebAuthn è stato utilizzato il file \verb*|client_multichallenge.py| che simula, utilizzando le classi \verb*|Fido2ClientMultichallenge| e \verb*|Fido2ServerMultichallenge| la fase di creazione delle credenziali e poi l'autenticazione di queste con un numero arbitrario di FIDO Server operanti localmente. 
+I test delle modifiche al codice Solo e alla libreria FIDO sono stati effettuati in locale. Per la parte di WebAuthn è stato utilizzato il file \verb*|client_multichallenge.py| che simula, utilizzando le classi \verb*|Fido2ClientMultichallenge| e \verb*|Fido2ServerMultichallenge|, la fase di creazione delle credenziali e poi l'autenticazione di queste con un numero arbitrario di FIDO Server operanti localmente. 
 L'integrazione fatta al codice già presente è stata di definire i livello di sicurezza da utilizzare durante le due operazioni. 
 
 Per quanto riguarda l'autenticatore, invece, è stato utilizzato un emulatore scritto da Solo che permette la simulazione di un autenticatore virtuale comunicante tramite protocollo UDP. Questo ha evitato di dover compiere le operazioni tipiche dei dispositivi embedded di \emph{flash} del software sull'autenticatore fisico e ha snellito sensibilmente il processo di test. 
 
 Per fare in modo che l'emulatore UDP di Solo comunicasse con il Client FIDO2 della relativa libreria è stato necessario apportare delle modifiche alla classe \verb*|CtapHidConnection| che si occupa di definire, per i principali sistemi operativi, i metodi grazie ai quali è possibile interagire con gli \emph{Human Interface Device}. Per HID si intendono genericamente quei dispositivi elettronici che permettono l'interazione, sia essa in input o in output, con un essere umano. Gli autenticatori hardware fanno quindi parte degli HID. 
-In particolare è stato aggiunto il file \verb*|udp_backend.py| in cui viene definita la classe \verb*|UdpCtapHidConnection| facendo l'override di \verb*|CtapHidConnection|. Nello specifico:
+In particolare è stato aggiunto il file \verb*|udp_backend.py| in cui viene definita la classe \verb*|UdpCtapHidConnection| facendo l'override della classe \verb*|CtapHidConnection|. Nello specifico:
 \begin{itemize}
 	\item Viene definito un attributo della classe, chiamato \verb*|sock|, che rappresenta il \emph{socket} tramite cui avviene la comunicazione UDP
 	\begin{verbatim}
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	\end{verbatim}
-	L'elemento fondante del protocollo UDP sono proprio i SOCKET, combinazioni di indirizzi IP e porte necessari per la comunicazione.
+	L'elemento fondante del protocollo UDP sono, infatti, i SOCKET, combinazioni di indirizzi IP e porte necessari per la comunicazione.
 	\item Vengono ridefiniti i metodi di scrittura e lettura dei pacchetti utilizzando i metodi della libreria \verb*|socket| per l'invio e la ricezione tramite UDP
 	\begin{verbatim}
         def write_packet(self, data):

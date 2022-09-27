@@ -1,14 +1,14 @@
 \chapter{Prestazioni}
 \label{prestazioni}
 
-In questo capitolo viene mostrato l'esito in termini di performance delle modifiche apportate. Le prestazioni sono state misurate tramite uno script ereditato dal lavoro precedente sulla libreria FIDO opportunamente modificato per lo scopo. L'esito delle misurazioni è in linea con quanto già constatato precedentemente. 
+In questo capitolo viene mostrato l'esito in termini di performance delle modifiche apportate. Le prestazioni sono state misurate tramite uno script ereditato dal lavoro precedente sulla libreria FIDO opportunamente modificato per lo scopo. 
 
 \section{Raccolta dei dati}
 \label{raccolta_dati}
 
 Per prendere le misurazioni relative alle performance è stato utilizzato un calcolatore con sistema operativo Fedora 36, dotato di CPU Intel i5-8250U e un autenticatore CTAP2 emulato virtualmente tramite il backend UDP descritto nel capitolo precedente \ref{testing}. Grazie all'emulatore è stato possibile inibire la mediazione dell'utente richiesta, sia in fase di creazione delle credenziali che di autenticazione. Così facendo il dato ottenuto risulta deterministico.
 
-I tempi di esecuzioni sono stati presi tramite l'ausilio della libreria Python \verb*|timeit|, che prende come parametro una funzione e il numero di volte che deve essere eseguita, restituendo il tempo di esecuzione. I metodi provati sono stati quelli descritti nei capitoli precedenti:
+I tempi di esecuzione sono stati presi tramite l'ausilio della libreria Python \verb*|timeit|, che include metodi per la misura del tempo di esecuzione di funzioni. Tali metodi accettano come parametro la funzione da misurare, il numero di volte che deve essere eseguita e ne restituiscono il tempo di esecuzione. I metodi misurati sono stati quelli descritti nei capitoli precedenti:
 
 Per la fase di creazione delle credenziali
 \begin{itemize}
@@ -23,7 +23,7 @@ E per la fase di autenticazione
 	\item \verb*|authenticate_complete()|
 \end{itemize}
 
-Per ogni livello di sicurezza \emph{n} stabilito, i test sono stati ripetuti con un livello di sicurezza in fase di \textbf{autenticazione} \emph{k} tale che: $k \in [1, n]$. Per diminuire la variabilità dei dati i tempi del metodo \verb*|get_assertion()| sono stati presi sulla base della media di dieci iterazioni. La fase di creazione è stata, invece, ripetuta solamente una volta.
+Per ogni livello di sicurezza $|Q|$ stabilito, il numero $n$ di server presenti,  il numero \emph{k} di server malevoli con $k \in [1,n]$, i test sono stati ripetuti con un livello di sicurezza $|Q| \in [2k+1, 3k+1]$. Per diminuire la variabilità dei dati i tempi del metodo \verb*|get_assertion()| sono stati presi sulla base della media di dieci iterazioni. La fase di creazione è stata, invece, ripetuta solamente una volta.
 
 \section{Valutazione dei dati}
 \label{valutazione}
@@ -33,18 +33,40 @@ I dati nel grafico sono relativi sia alle fasi di creazione che di autenticazion
 	\includegraphics[scale=0.65]{figures/test_results}
 \end{center}
 
-Come si può notare dal grafico all'aumentare del livello di sicurezza, e quindi del numero di FIDO Server, il tempo totale cresce di circa 30 \emph{ms}. Con 5 FIDO Server il tempo di esecuzione totale è più che raddoppiato. Si nota un'anomalia in corrispondenza di quattro FIDO Server ma il trend rimane comunque crescente.
+Come si può notare dal grafico all'aumentare del numero di FIDO Server l'operazione totale subisce un incremento di circa 20 \emph{ms}. 
 
-I tempi per la fase di creazione delle credenziali riportano un risultato simile: un incremento di circa 20 \emph{ms} per ogni FIDO Server aggiuntivo. Anche qui è presente la stessa anomalia citata sopra. 
+I tempi per la fase di registrazione riportano un risultato simile: un incremento di circa 13 \emph{ms} ogni tre FIDO Server aggiuntivi.
 \begin{center}
 	\includegraphics[scale=0.65]{figures/creation_results}
 \end{center}
 
-I tempi della fase di autenticazione sono cresciuti più lentamente all'aumentare del livello di sicurezza richiesto in fase di autenticazione. In legenda sono indicati i FIDO Server attivi volta per volta e quindi il livello di sicurezza richiesto in fase di creazione delle credenziali. I punti sul grafico rappresentano il tempo necessario a completare l'operazione per ogni security level in fase di autenticazione, da \emph{1} a \emph{n}.
+Nella figura successiva sono rappresentati i tempi misurati per la sola fase di autenticazione. Per ogni valore di \emph{k} sono stati utilizzati i valori di security level nel range $[2k+1, 3k+1]$. Come si può notare la variazione del livello di sicurezza, dato lo stesso numero di server malevoli tollerabili, non influenza sensibilmente i tempi dell'operazione.
 \begin{center}
 	\includegraphics[scale=0.65]{figures/auth_results}
 \end{center}
 
 Occorre precisare che le misurazioni effettuate sono assolutamente ottimistiche sia per quanto riguarda la latenza con i FIDO Server, operanti localmente, che per quella con l'autenticatore, emulato virtualmente. Inoltre, non tengono conto dell'interazione umana richiesta e dell'utilizzo di un Web Browser con le penalizzazioni che ne conseguono. 
 
-Si può quindi concludere dai dati raccolti che l'incremento di tempo richiesto dall'operazione con una combinazione di \emph{k} e \emph{n} adeguata è di pochi \emph{ms} in più a fronte di una \emph{survivability} migliore. Per numeri di FIDO Server alti l'operazione richiede, però, un tempo doppio rispetto al normale, costituendo una penalizzazione di fatto non trascurabile.
+Si può quindi concludere dai dati raccolti che l'incremento di tempo richiesto dall'operazione con una combinazione di $|Q|$ e \emph{n} è di pochi \emph{ms} in più a fronte di una \emph{survivability} migliore. La parte più onerosa in termini di tempo è quella legata alla registrazione, la quale richiede il doppio del tempo al raddoppiare dei FIDO Server con cui dialogare. La fase di autenticazione, invece, si distanzia di soli $12 ms$ tra il caso limite inferiore e quello superiore considerato, un incremento di circa il $25\%$.
+
+\section{Fattibilità}
+\label{fattibilità}
+
+Come specificato nella sezione relativa ai dettagli implementativi \ref{testing}, è stato utilizzato un emulatore dell'autenticatore hardware sviluppato da Solokeys sia per l'implementazione che per la fase di testing. Il codice dell'autenticatore originale è basato sul microcontrollore STM32L432, il quale prevede 256 KB di memoria così suddivisa:
+\begin{itemize}
+	\item 14 KB per il bootloader
+	\item 226 KB per il codice da eseguire
+	\item 16 KB disponibili per immagazzinare i dati
+\end{itemize}
+
+Poiché la memoria disponibile è così ridotta gli sviluppatori hanno previsto il cosidetto \emph{wrapping delle chiavi}: invece che generare una coppia di chiavi crittografiche ad ogni richiesta di registrazione, viene generata una singola chiave crittografica \textbf{M} detta \emph{master key} e ad ogni richiesta di registrazione viene computato l'hash di \emph{HMAC(R, M)} dove \textbf{R} è un numero generato al momento. Il risultato dell'hash è una chiave crittografica, da cui verrà derivata la corrispondente chiave pubblica. La prima viene usata per firmare e la seconda viene inviata al server insieme ad \textbf{R}. Nessuna informazione viene salvata dall'autenticatore: l'unico dato necessario all'autenticatore in fase di autenticazione è \textbf{R}, tramite il quale ripeterà il procedimento computando l'\emph{hash} per generare le chiavi. 
+
+Dato che l'implementazione proposta si avvale di una struttura dati \verb*|signCounter| che presenta:
+\begin{itemize}
+	\item Una struttura dati CredentialID per identificare il contatore di quale credenziale va incrementato di $88$ bit
+	\item Un array di contatori interi senza segno di 16 bit l'uno, i quali garantiscono 1 autenticazione al giorno per 179 anni ($(2^{16}) \div 365$), per 3 livelli di sicurezza
+\end{itemize}
+
+Avremo un preso totale di circa $94$ bit, il che significa che in 16KB di memoria è possibile immagazzinare circa \textbf{21} credenziali differenti. Il risultato ottenuto è in linea con i limiti stabiliti \cite{yubico:resident} da Yubico per le proprie \emph{resident keys}, una tipologia particolare di credenziali che necessitano di essere salvate in memoria.
+
+Viene meno la potenzialità di utilizzare la chiavetta per autenticarsi a virtualmente un numero illimitato di servizi Web ma ciò è compensato dai livelli di sicurezza del tutto sufficienti a garantire un incremento di sicurezza notevole (si parla di una resistenza fino a due server compromessi) e un utilizzo giornaliero costante e duraturo. Considerando anche la limitatezza di servizi Web che offrono l'autenticazione passwordless si può concludere che il limite di ventuno credenziali non è affatto stringente. 

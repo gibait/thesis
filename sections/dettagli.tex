@@ -16,7 +16,43 @@ Lato autenticatore invece si è reso necessario implementare diverse funzionalit
 
 La libreria FIDO2 presenta il file \verb*|client_multichallenge.py| in cui viene definita la classe \verb*|Fido2ClientMultichallenge|, figlia della classe \verb*|Fido2Client| nel relativo \verb*|client.py|, che permette l'autenticazione WebAuthn simulando un Client FIDO. Presenta due metodi, \verb*|make_credential| per realizzare l'operazione di creazione delle credenziali e \verb*|get_assertion| per compiere l'operazione di autenticazione. 
 
-Rispetto alla condizione di partenza sono stati aggiunti ai metodi sopracitati il passaggio del parametro \verb*|security_level|. Questo valore viene poi passato alla funzione \verb*|send_cbor| chiamata in concatenazione. Quest'ultima funzione si occupa di creare la sequenza di byte codificata in \emph{CBOR}, inviarla all'autenticatore e attenderne la risposta. 
+Rispetto alla condizione di partenza è stato aggiunto il controllo del contatore lato server. Per fare ciò è stato definito all'interno del costruttore di \verb*|Fido2ServerMultichallenge| un dizionario tramite cui tenere traccia dei contatori:
+\begin{verbatim}
+	self.counter_register = {}
+\end{verbatim}
+I metodi interessati della classe sono sostanzialmente due: 
+\begin{itemize}
+	\item \verb*|register_complete|
+	\item \verb*|authenticate_complete|
+\end{itemize}
+
+Entrambe le funzioni si occupano di controllare la correttezza dei dati ricevuti dal Client dopo che ha interpellato l'autenticatore. Entrambi i metodi vengono chiamati nel file \verb*|client_multichallenge.py| e ad entrambi è stato aggiunto il passaggio del parametro \verb*|security_level|.
+
+Nel primo metodo, \verb*|register_complete|, viene salvato il contatore ricevuto all'interno del dizionario. Per fare ciò viene creato un secondo dizionario interno al primo, utilizzando il \emph{CredentialID} ricevuto in dall'autenticatore. In questo secondo dizionario sarà presente la coppia \verb*|security_level|:\verb*|contatore|. 
+\begin{verbatim}
+self.counter_register[credential_id] 
+    = 
+      {security_level: attestation_object.auth_data.counter}
+	
+\end{verbatim}
+
+Nel secondo metodo invece vengono effettuati i controlli sulla base di quanto salvato dal server nel proprio dizionario e quanto ricevuto dall'autenticatore. In caso di contatore ricevuto minore o uguale a quello immagazzinato viene sollevato un errore che porta alla terminazione del programma. 
+\begin{verbatim}
+	if auth_data.counter <= self.counter_register[credential_id][security_level]:
+	    raise ValueError("Counter did not increase.")
+\end{verbatim}
+Questo perchè si suppone che vi sia stato un tentativo di clonazione. 
+
+Qualora, invece, il contatore fosse maggiore di quello immagazzinato $+1$ allora verrà solamente notificato il fornitore del server tramite un messaggio in console di log. 
+\begin{verbatim}
+elif auth_data.counter > self.counter_register[credential_id][security_level] + 1:
+    print("Counter bigger than expected")
+\end{verbatim}
+In quest'ultimo caso e nel caso in cui il contatore venga incrementato correttamente viene aggiornato il valore corrispondente nel dizionario del server. Se nessuna di queste condizioni è verificata vuol dire che non è presente nel dizionario una voce con quel dato security level: in questo caso viene semplicemente aggiunto il security level al dizionario interno con il relativo contatore.
+
+\begin{verbatim}
+	self.counter_register[credential_id][security_level] = auth_data.counter
+\end{verbatim}
 
 \section{Modifica del codice Solo}
 \label{modifica_solo}
@@ -116,7 +152,7 @@ In particolare è stato aggiunto il file \verb*|udp_backend.py| in cui viene def
 	\item Vengono ridefiniti i metodi di scrittura e lettura dei pacchetti utilizzando i metodi della libreria \verb*|socket| per l'invio e la ricezione tramite UDP
 	\begin{verbatim}
         def write_packet(self, data):
-            self.sock.sendto(data, self.remote)
+            self.sock.sendto(data, self.remote)/CLionProjects/
 		
         def read_packet(self):
             data, host = self.sock.recvfrom(self.descriptor.report_size_out)

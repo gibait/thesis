@@ -52,21 +52,24 @@ Si può quindi concludere dai dati raccolti che l'incremento di tempo richiesto 
 \section{Fattibilità}
 \label{fattibilità}
 
-Come specificato nella sezione relativa ai dettagli implementativi \ref{testing}, è stato utilizzato un emulatore dell'autenticatore hardware sviluppato da Solokeys sia per l'implementazione che per la fase di testing. Il codice dell'autenticatore originale è basato sul microcontrollore STM32L432, il quale prevede 256 KB di memoria così suddivisa:
+Come specificato nella sezione relativa ai dettagli implementativi \ref{testing}, è stato utilizzato un emulatore dell'autenticatore hardware sviluppato da Solokeys sia per l'implementazione che per la fase di testing. Il codice dell'autenticatore originale è basato sul microcontrollore STM32L432, microcontrollore STM32L432 che offre 256KB di memoria secondaria. L'implementazione suddivide la memoria secondaria nel seguente modo:
 \begin{itemize}
 	\item 14 KB per il bootloader
 	\item 226 KB per il codice da eseguire
-	\item 16 KB disponibili per immagazzinare i dati
+	\item 16 KB disponibili per immagazzinare i dati, di cui solo 2048 B adibite alla memorizzazione del contatore
 \end{itemize}
 
 Poiché la memoria disponibile è così ridotta gli sviluppatori hanno previsto il cosidetto \emph{wrapping delle chiavi}: invece che generare una coppia di chiavi crittografiche ad ogni richiesta di registrazione, viene generata una singola chiave crittografica \textbf{M} detta \emph{master key} e ad ogni richiesta di registrazione viene computato l'hash di \emph{HMAC(R, M)} dove \textbf{R} è un numero generato al momento. Il risultato dell'hash è una chiave crittografica, da cui verrà derivata la corrispondente chiave pubblica. La prima viene usata per firmare e la seconda viene inviata al server insieme ad \textbf{R}. Nessuna informazione viene salvata dall'autenticatore: l'unico dato necessario all'autenticatore in fase di autenticazione è \textbf{R}, tramite il quale ripeterà il procedimento computando l'\emph{hash} per generare le chiavi. 
 
 Dato che l'implementazione proposta si avvale di una struttura dati \verb*|signCounter| che presenta:
 \begin{itemize}
-	\item Una struttura dati CredentialID per identificare il contatore di quale credenziale va incrementato di $88$ bit
+	\item Una struttura dati CredentialID di dimensioni pari a $88$ bytes
 	\item Un array di contatori interi senza segno di 16 bit l'uno, i quali garantiscono 1 autenticazione al giorno per 179 anni ($(2^{16}) \div 365$), per 3 livelli di sicurezza
 \end{itemize}
 
-Avremo un preso totale di circa $94$ bit, il che significa che in 16KB di memoria è possibile immagazzinare circa \textbf{21} credenziali differenti. Il risultato ottenuto è in linea con i limiti stabiliti \cite{yubico:resident} da Yubico per le proprie \emph{resident keys}, una tipologia particolare di credenziali che necessitano di essere salvate in memoria.
+
+Avremo quindi una occupazione di memoria del \verb*|signCounter| di circa $94$ bytes. Per rispettare i vincoli di memoria dell'autenticatore, nella soluzione proposta, come nel firmware dell'autenticatore originale, dedichiamo 2048 bytes alla memorizzazione dei contatori. In questo modo è possibile immagazzinare circa \textbf{21} credenziali differenti. Il risultato ottenuto è in linea con i limiti stabiliti \cite{yubico:resident} da Yubico per le proprie \emph{resident keys}, una tipologia particolare di credenziali che necessitano di essere salvate in memoria.
+
+Occorre considerare che l'aggiunta di un contatore limita le possibilità dell'hardware di fatto riducendo il rapporto costo microcontrollore/numero di credenziali. Si può stimare un costo a contatore ($21$ credenziali * $ 3$ livelli di sicurezza), con un prezzo dell'STM32L432 per grossi stock di $\$4.59673$, di circa $0,07$ cents, sicuramente non trascurabile per grandi numeri.
 
 Viene meno la potenzialità di utilizzare la chiavetta per autenticarsi a virtualmente un numero illimitato di servizi Web ma ciò è compensato dai livelli di sicurezza del tutto sufficienti a garantire un incremento di sicurezza notevole (si parla di una resistenza fino a due server compromessi) e un utilizzo giornaliero costante e duraturo. Considerando anche la limitatezza di servizi Web che offrono l'autenticazione passwordless si può concludere che il limite di ventuno credenziali non è affatto stringente. 
